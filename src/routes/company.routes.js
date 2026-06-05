@@ -20,7 +20,7 @@ router.post(
 router.get(
   "/my-company",
   authMiddleware,
-  checkRoleMiddleware("recruiter"),
+  checkRoleMiddleware(["recruiter", "seeker"]),
   companyController.myCompanyController,
 );
 

@@ -3,24 +3,44 @@ import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
 import checkRoleMiddleware from "../middleware/role.middleware.js";
 
-
 const router = express.Router();
 
 // public routes
 router.get("/", jobsController.getJobsController);
 router.get("/latest-jobs", jobsController.latestJobsController);
 
-
 // protected routes for recruiter
-router.post("/new", authMiddleware,checkRoleMiddleware("recruiter"), jobsController.newJobController);
-router.get("/my-jobs", authMiddleware,checkRoleMiddleware("recruiter"), jobsController.myJobsController);
-router.patch("/my-jobs/:id", authMiddleware,checkRoleMiddleware("recruiter"), jobsController.updateJobController);
-router.delete("/my-jobs/:id", authMiddleware,checkRoleMiddleware("recruiter"), jobsController.deleteJobController);
-
-
+router.post(
+  "/new",
+  authMiddleware,
+  checkRoleMiddleware("recruiter"),
+  jobsController.newJobController,
+);
+router.get(
+  "/my-jobs",
+  authMiddleware,
+  checkRoleMiddleware(["recruiter", "seeker"]),
+  jobsController.myJobsController,
+);
+router.patch(
+  "/my-jobs/:id",
+  authMiddleware,
+  checkRoleMiddleware("recruiter"),
+  jobsController.updateJobController,
+);
+router.delete(
+  "/my-jobs/:id",
+  authMiddleware,
+  checkRoleMiddleware("recruiter"),
+  jobsController.deleteJobController,
+);
 
 // protected for seeker
-router.get("/:id", authMiddleware,checkRoleMiddleware("seeker"), jobsController.getJobByIdController);
-
+router.get(
+  "/:id",
+  authMiddleware,
+  checkRoleMiddleware("seeker"),
+  jobsController.getJobByIdController,
+);
 
 export default router;
