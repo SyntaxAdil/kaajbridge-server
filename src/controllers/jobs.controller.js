@@ -4,7 +4,12 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 // post new job
 const newJobController = asyncHandler(async (req, res) => {
-  const job = await jobsModel.create(req.body);
+  const recruiterId = req.user.sub;
+
+  const job = await jobsModel.create({
+    ...req.body,
+    recruiterId: recruiterId,
+  });
 
   res.status(201).json({
     success: true,
@@ -120,4 +125,33 @@ const latestJobsController = asyncHandler(async (req, res) => {
   });
 });
 
-export default { newJobController, getJobsController, getJobByIdController,latestJobsController };
+// my jobs route
+
+const myJobsController = asyncHandler(async (req, res) => {
+  const recruiterId = req.user.sub;
+
+  if (!recruiterId) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Recruiter Id",
+    });
+  }
+
+  const myJobs = await jobsModel.find({
+    recruiterId: recruiterId,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "My Jobs fetched successfully",
+    data: myJobs,
+  });
+});
+
+export default {
+  newJobController,
+  getJobsController,
+  getJobByIdController,
+  latestJobsController,
+  myJobsController,
+};

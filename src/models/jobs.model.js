@@ -53,7 +53,7 @@ const jobSchema = new mongoose.Schema(
         message: "Must agree to terms & conditions to proceed",
       },
     },
-    postedBy: {
+    recruiterId: {
       type: String,
     },
     companyLogo: {
