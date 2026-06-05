@@ -17,3 +17,5 @@ export const connectDB = async () => {
     process.exit(1);
   }
 };
+// raw mongodb for user and other external   collection
+export const getDB = () => mongoose.connection.db;

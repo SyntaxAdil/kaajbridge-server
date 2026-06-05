@@ -20,7 +20,7 @@ router.post(
 router.get(
   "/my-company",
   authMiddleware,
-  checkRoleMiddleware(["recruiter", "seeker"]),
+  checkRoleMiddleware("recruiter"),
   companyController.myCompanyController,
 );
 
@@ -42,7 +42,8 @@ router.delete(
 router.get(
   "/:id",
   authMiddleware,
-  checkRoleMiddleware("seeker"),
+  checkRoleMiddleware(["seeker", "recruiter"]),
+
   companyController.getCompanyByIdController,
 );
 

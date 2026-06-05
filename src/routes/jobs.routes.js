@@ -19,7 +19,7 @@ router.post(
 router.get(
   "/my-jobs",
   authMiddleware,
-  checkRoleMiddleware(["recruiter", "seeker"]),
+  checkRoleMiddleware("recruiter"),
   jobsController.myJobsController,
 );
 router.patch(
@@ -39,7 +39,7 @@ router.delete(
 router.get(
   "/:id",
   authMiddleware,
-  checkRoleMiddleware("seeker"),
+  checkRoleMiddleware(["seeker","recruiter"]),
   jobsController.getJobByIdController,
 );
 
