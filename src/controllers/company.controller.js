@@ -4,7 +4,10 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 // post new company
 const newCompanyController = asyncHandler(async (req, res) => {
-  const company = await companyModel.create(req.body);
+  const company = await companyModel.create({
+    ...req.body,
+    ownedBy: req.user.sub,
+  });
 
   res.status(201).json({
     success: true,
@@ -198,18 +201,11 @@ const topCompaniesController = asyncHandler(async (req, res) => {
 const myCompanyController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
 
-  if (!recruiterId) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid Recruiter Id",
-    });
-  }
-
   const myCompany = await companyModel.find({
-    recruiterId: recruiterId,
+    ownedBy: recruiterId,
   });
 
-  res.status(201).json({
+  res.status(200).json({
     success: true,
     message: "My Company fetched successfully",
     data: myCompany,
@@ -224,5 +220,5 @@ export default {
   topCompaniesController,
   myCompanyController,
   updateCompanyController,
-  deleteCompanyController
+  deleteCompanyController,
 };

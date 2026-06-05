@@ -200,18 +200,12 @@ const latestJobsController = asyncHandler(async (req, res) => {
 const myJobsController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
 
-  if (!recruiterId) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid Recruiter Id",
-    });
-  }
-
+ 
   const myJobs = await jobsModel.find({
     recruiterId: recruiterId,
   });
 
-  res.status(201).json({
+  res.status(200).json({
     success: true,
     message: "My Jobs fetched successfully",
     data: myJobs,
