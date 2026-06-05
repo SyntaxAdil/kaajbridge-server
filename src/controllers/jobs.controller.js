@@ -180,7 +180,7 @@ const deleteJobController = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Job deleted successfully",
-    data: updatedJob,
+    data: deleteJob,
   });
 });
 // latest jobs

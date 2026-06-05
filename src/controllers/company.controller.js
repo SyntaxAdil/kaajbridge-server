@@ -100,6 +100,77 @@ const getCompanyByIdController = asyncHandler(async (req, res) => {
   });
 });
 
+// update company
+const updateCompanyController = asyncHandler(async (req, res) => {
+  const recruiterId = req.user.sub;
+  const companyId = req.params.id;
+  const body = req.body;
+
+  const findCompany = await companyModel.findById(companyId);
+
+  if (!findCompany) {
+    return res.status(404).json({
+      success: false,
+      message: "Company not found",
+    });
+  }
+
+  if (findCompany.ownedBy !== recruiterId) {
+    return res.status(403).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  const updatedCompany = await companyModel.findByIdAndUpdate(
+    companyId,
+    {
+      $set: body,
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Company updated successfully",
+    data: updatedCompany,
+  });
+});
+
+
+// delete company
+const deleteCompanyController = asyncHandler(async (req, res) => {
+  const recruiterId = req.user.sub;
+  const companyId = req.params.id;
+
+  const findCompany = await companyModel.findById(companyId);
+
+  if (!findCompany) {
+    return res.status(404).json({
+      success: false,
+      message: "Company not found",
+    });
+  }
+
+  if (findCompany.ownedBy !== recruiterId) {
+    return res.status(403).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  const deletedCompany = await companyModel.findByIdAndDelete(companyId);
+
+  res.status(200).json({
+    success: true,
+    message: "Company deleted successfully",
+    data: deletedCompany,
+  });
+});
+
 // top companies
 
 const topCompaniesController = asyncHandler(async (req, res) => {
