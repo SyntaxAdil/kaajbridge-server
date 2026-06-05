@@ -6,6 +6,6 @@ const router = express.Router();
 
 router.post("/new", companyController.newCompanyController);
 router.get("/", companyController.getCompanyController);
-// router.get("/:id", companyController.getJobByIdController);
+router.get("/:id", companyController.getCompanyByIdController);
 
 export default router;

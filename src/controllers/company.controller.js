@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import companyModel from "../models/company.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
@@ -74,4 +75,35 @@ const getCompanyController = asyncHandler(async (req, res) => {
     data: companies,
   });
 });
-export default { newCompanyController, getCompanyController };
+
+// get one companty data
+
+const getCompanyByIdController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Company Id",
+    });
+  }
+  const companyData = await companyModel.findById(id);
+  if (!companyData) {
+    return res.status(404).json({
+      success: false,
+      message: "Company not found",
+    });
+  }
+  res.status(200).json({
+    success: true,
+    message: "Company fetched successfully",
+    data: companyData,
+  });
+});
+
+
+// exports
+export default {
+  newCompanyController,
+  getCompanyController,
+  getCompanyByIdController,
+};
