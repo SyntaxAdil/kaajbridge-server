@@ -100,10 +100,34 @@ const getCompanyByIdController = asyncHandler(async (req, res) => {
   });
 });
 
+// top companies
+
+const topCompaniesController = asyncHandler(async (req, res) => {
+  const company = await companyModel
+    .find({
+      isVerified: true,
+    })
+    .limit(8);
+
+  const companyData = company.map((c) => {
+    return {
+      name: c.name,
+      companyLogo: c.companyLogo,
+      location: c.address.country,
+    };
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Top Company fetched successfully",
+    data: companyData,
+  });
+});
 
 // exports
 export default {
   newCompanyController,
   getCompanyController,
   getCompanyByIdController,
+  topCompaniesController,
 };

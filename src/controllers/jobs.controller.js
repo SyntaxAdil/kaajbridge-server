@@ -108,4 +108,16 @@ const getJobByIdController = asyncHandler(async (req, res) => {
   });
 });
 
-export default { newJobController, getJobsController, getJobByIdController };
+// latest jobs
+
+const latestJobsController = asyncHandler(async (req, res) => {
+  const jobData = await jobsModel.find().sort({ createdAt: -1 }).limit(6);
+
+  res.status(200).json({
+    success: true,
+    message: "Top Company fetched successfully",
+    data: jobData,
+  });
+});
+
+export default { newJobController, getJobsController, getJobByIdController,latestJobsController };
