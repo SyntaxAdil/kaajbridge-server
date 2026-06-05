@@ -130,7 +130,7 @@ const updateCompanyController = asyncHandler(async (req, res) => {
     {
       new: true,
       runValidators: true,
-    }
+    },
   );
 
   res.status(200).json({
@@ -139,7 +139,6 @@ const updateCompanyController = asyncHandler(async (req, res) => {
     data: updatedCompany,
   });
 });
-
 
 // delete company
 const deleteCompanyController = asyncHandler(async (req, res) => {
@@ -195,10 +194,35 @@ const topCompaniesController = asyncHandler(async (req, res) => {
   });
 });
 
+// my company
+const myCompanyController = asyncHandler(async (req, res) => {
+  const recruiterId = req.user.sub;
+
+  if (!recruiterId) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Recruiter Id",
+    });
+  }
+
+  const myCompany = await companyModel.find({
+    recruiterId: recruiterId,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "My Company fetched successfully",
+    data: myCompany,
+  });
+});
+
 // exports
 export default {
   newCompanyController,
   getCompanyController,
   getCompanyByIdController,
   topCompaniesController,
+  myCompanyController,
+  updateCompanyController,
+  deleteCompanyController
 };
