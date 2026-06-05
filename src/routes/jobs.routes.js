@@ -14,6 +14,8 @@ router.get("/latest-jobs", jobsController.latestJobsController);
 // protected routes for recruiter
 router.post("/new", authMiddleware,checkRoleMiddleware("recruiter"), jobsController.newJobController);
 router.get("/my-jobs", authMiddleware,checkRoleMiddleware("recruiter"), jobsController.myJobsController);
+router.patch("/my-jobs/:id", authMiddleware,checkRoleMiddleware("recruiter"), jobsController.updateJobController);
+router.delete("/my-jobs/:id", authMiddleware,checkRoleMiddleware("recruiter"), jobsController.deleteJobController);
 
 
 

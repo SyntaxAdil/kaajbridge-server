@@ -113,6 +113,76 @@ const getJobByIdController = asyncHandler(async (req, res) => {
   });
 });
 
+//update logic for jobs
+
+const updateJobController = asyncHandler(async (req, res) => {
+  const recruiterId = req.user.sub;
+  const jobId = req.params.id;
+  const body = req.body;
+
+  const findJob = await jobsModel.findById(jobId);
+
+  if (!findJob) {
+    return res.status(404).json({
+      success: false,
+      message: "Job not found",
+    });
+  }
+
+  if (findJob.recruiterId !== recruiterId) {
+    return res.status(403).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  const updatedJob = await jobsModel.findByIdAndUpdate(
+    jobId,
+    {
+      $set: body,
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Job updated successfully",
+    data: updatedJob,
+  });
+});
+
+// delete logic for jobs
+const deleteJobController = asyncHandler(async (req, res) => {
+  const recruiterId = req.user.sub;
+  const jobId = req.params.id;
+
+  const findJob = await jobsModel.findById(jobId);
+
+  if (!findJob) {
+    return res.status(404).json({
+      success: false,
+      message: "Job not found",
+    });
+  }
+
+  if (findJob.recruiterId !== recruiterId) {
+    return res.status(403).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  const deleteJob = await jobsModel.findByIdAndDelete(jobId);
+
+  res.status(200).json({
+    success: true,
+    message: "Job deleted successfully",
+    data: updatedJob,
+  });
+});
 // latest jobs
 
 const latestJobsController = asyncHandler(async (req, res) => {
@@ -154,4 +224,6 @@ export default {
   getJobByIdController,
   latestJobsController,
   myJobsController,
+  updateJobController,
+  deleteJobController
 };
