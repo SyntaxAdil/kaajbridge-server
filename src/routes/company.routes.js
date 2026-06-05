@@ -11,7 +11,7 @@ router.get("/top-companies", companyController.topCompaniesController);
 
 //  Protected Routes for Recruiter
 router.post(
-  "/new",
+  "/",
   authMiddleware,
   checkRoleMiddleware("recruiter"),
   companyController.newCompanyController,

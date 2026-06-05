@@ -11,7 +11,7 @@ router.get("/latest-jobs", jobsController.latestJobsController);
 
 // protected routes for recruiter
 router.post(
-  "/new",
+  "/",
   authMiddleware,
   checkRoleMiddleware("recruiter"),
   jobsController.newJobController,
