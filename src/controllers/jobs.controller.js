@@ -16,9 +16,19 @@ const newJobController = asyncHandler(async (req, res) => {
 // get jobs data with filters ,search and sort
 
 const getJobsController = asyncHandler(async (req, res) => {
-  const { search, type, experience, location, sort } = req.query;
-  let query = {};
+  const {
+    search,
+    type,
+    experience,
+    location,
+    sort = "newest",
+    page = 1,
+    limit = 10,
+  } = req.query;
 
+  const query = {};
+
+  // Search
   if (search) {
     query.$or = [
       { title: { $regex: search, $options: "i" } },
@@ -26,26 +36,50 @@ const getJobsController = asyncHandler(async (req, res) => {
       { skills: { $regex: search, $options: "i" } },
     ];
   }
+
+  // Filters
   if (type) {
     query.type = type;
   }
+
   if (experience) {
     query.experience = experience;
   }
+
   if (location) {
     query.location = { $regex: location, $options: "i" };
   }
 
+  // Pagination
+  const pageNumber = Number(page);
+  const pageSize = Number(limit);
+  const skip = (pageNumber - 1) * pageSize;
+
+  // Total matching jobs
+  const totalJobs = await jobsModel.countDocuments(query);
+
+  // Query
   let jobsQuery = jobsModel.find(query);
 
+  // Sorting
   if (sort === "newest") {
     jobsQuery = jobsQuery.sort({ createdAt: -1 });
   }
 
+  if (sort === "oldest") {
+    jobsQuery = jobsQuery.sort({ createdAt: 1 });
+  }
+
+  jobsQuery = jobsQuery.skip(skip).limit(pageSize);
+
   const jobs = await jobsQuery;
+
   res.status(200).json({
     success: true,
-    message: "Job fetched successfully",
+    totalJobs,
+    currentPage: pageNumber,
+    totalPages: Math.ceil(totalJobs / pageSize),
+    count: jobs.length,
     data: jobs,
   });
 });
