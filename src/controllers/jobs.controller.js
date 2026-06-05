@@ -1,6 +1,6 @@
+import mongoose from "mongoose";
 import jobsModel from "../models/jobs.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
-
 
 // post new job
 const newJobController = asyncHandler(async (req, res) => {
@@ -50,11 +50,28 @@ const getJobsController = asyncHandler(async (req, res) => {
   });
 });
 
-
 // get particular one job with jobId
 
+const getJobByIdController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Job Id",
+    });
+  }
+  const jobData = await jobsModel.findById(id);
+  if (!jobData) {
+    return res.status(404).json({
+      success: false,
+      message: "Job not found",
+    });
+  }
+  res.status(200).json({
+    success: true,
+    message: "Job fetched successfully",
+    data: jobData,
+  });
+});
 
-
-
-
-export default { newJobController, getJobsController };
+export default { newJobController, getJobsController, getJobByIdController };
