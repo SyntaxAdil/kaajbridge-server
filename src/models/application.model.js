@@ -43,6 +43,10 @@ const applicationSchema = new mongoose.Schema(
         message: "Must agree to terms & conditions to proceed",
       },
     },
+    recruiterId: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true },
 );
