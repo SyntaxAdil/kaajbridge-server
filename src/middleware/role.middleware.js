@@ -3,13 +3,13 @@ const checkRoleMiddleware = (roles) => (req, res, next) => {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 
-  if (!roles.includes(req.user.role)) {
-    return res
-      .status(403)
-      .json({
-        success: false,
-        message: "Forbidden - Insufficient permissions",
-      });
+  const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+  if (!allowedRoles.includes(req.user.role)) {
+    return res.status(403).json({
+      success: false,
+      message: "Forbidden - Insufficient permissions",
+    });
   }
 
   next();
