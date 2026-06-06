@@ -1,11 +1,22 @@
 import mongoose from "mongoose";
 import jobsModel from "../models/jobs.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import companyModel from "../models/company.model.js";
 
 // post new job
 const newJobController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
-
+  const { company } = req.body;
+  const findCompanyForTheRecrutier = await companyModel.findOne({
+    _id: company,
+    ownedBy: recruiterId,
+  });
+  if (!findCompanyForTheRecrutier) {
+    return res.status(404).json({
+      success: false,
+      message: "Unauthorized ! No company found",
+    });
+  }
   const job = await jobsModel.create({
     ...req.body,
     recruiterId: recruiterId,
@@ -200,7 +211,6 @@ const latestJobsController = asyncHandler(async (req, res) => {
 const myJobsController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
 
- 
   const myJobs = await jobsModel.find({
     recruiterId: recruiterId,
   });
@@ -219,5 +229,5 @@ export default {
   latestJobsController,
   myJobsController,
   updateJobController,
-  deleteJobController
+  deleteJobController,
 };
