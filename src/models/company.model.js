@@ -28,6 +28,7 @@ const companySchema = new mongoose.Schema(
     },
     industry: {
       type: String,
+      required: true,
       enum: [
         "technology",
         "finance",
@@ -36,9 +37,14 @@ const companySchema = new mongoose.Schema(
         "ecommerce",
         "media",
         "manufacturing",
-        "other",
+        "construction",     
+        "telecommunication", 
+        "power_energy",      
+        "automobile",         
+        "garments_textile",   
+        "agro_food",          
+        "other"
       ],
-      required: true,
     },
     size: {
       type: String,

@@ -117,8 +117,7 @@ const updateCompanyController = asyncHandler(async (req, res) => {
       message: "Company not found",
     });
   }
-
-  if (findCompany.ownedBy !== recruiterId) {
+  if (findCompany.ownedBy.toString() !== recruiterId) {
     return res.status(403).json({
       success: false,
       message: "Unauthorized",
@@ -157,7 +156,7 @@ const deleteCompanyController = asyncHandler(async (req, res) => {
     });
   }
 
-  if (findCompany.ownedBy !== recruiterId) {
+  if (findCompany.ownedBy.toString() !== recruiterId) {
     return res.status(403).json({
       success: false,
       message: "Unauthorized",
