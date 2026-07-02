@@ -200,17 +200,39 @@ const topCompaniesController = asyncHandler(async (req, res) => {
 const myCompanyController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
 
-  const myCompany = await companyModel.find({
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+
+  const skip = (page - 1) * limit;
+
+  const totalCompanies = await companyModel.countDocuments({
     ownedBy: recruiterId,
   });
+
+  const myCompany = await companyModel
+    .find({
+      ownedBy: recruiterId,
+    })
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  const totalPages = Math.ceil(totalCompanies / limit);
 
   res.status(200).json({
     success: true,
     message: "My Company fetched successfully",
+    pagination: {
+      total: totalCompanies,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
     data: myCompany,
   });
 });
-
 // exports
 export default {
   newCompanyController,
