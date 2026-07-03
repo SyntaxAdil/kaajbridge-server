@@ -9,6 +9,14 @@ const router = express.Router();
 router.get("/", companyController.getCompanyController);
 router.get("/top-companies", companyController.topCompaniesController);
 
+// update company status by admin
+router.patch(
+  "/:id/status",
+  authMiddleware,
+  checkRoleMiddleware("admin"),
+  companyController.updateCompanyValidationStatusController,
+);
+
 //  Protected Routes for Recruiter
 router.post(
   "/",

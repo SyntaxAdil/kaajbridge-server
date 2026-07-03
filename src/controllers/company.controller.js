@@ -55,7 +55,7 @@ const getCompanyController = asyncHandler(async (req, res) => {
 
   const totalCompany = await companyModel.countDocuments(query);
 
-  let companyQuery = companyModel.find(query);
+  let companyQuery = companyModel.find({ ...query, isVerified: true });
 
   if (sort === "newest") {
     companyQuery = companyQuery.sort({ createdAt: -1 });
@@ -141,6 +141,36 @@ const updateCompanyController = asyncHandler(async (req, res) => {
     data: updatedCompany,
   });
 });
+
+// update company validation status
+
+const updateCompanyValidationStatusController = asyncHandler(
+  async (req, res) => {
+    {
+      const companyId = req.params.id;
+      const status = req.body.status;
+      const company = await companyModel.findById(companyId);
+      if (!company) {
+        return res.status(404).json({
+          success: false,
+          message: "Company not found"
+        })
+      }
+      const updatedCompany = await companyModel.findByIdAndUpdate(companyId, {
+        $set: {
+          isVerified: status
+        }
+      }, {
+        new: true,
+        runValidators: true
+      })
+      res.status(200).json({
+        success: true,
+        message: "Company updated successfully",
+        data: updatedCompany
+      })
+    }
+  })
 
 // delete company
 const deleteCompanyController = asyncHandler(async (req, res) => {
@@ -242,4 +272,5 @@ export default {
   myCompanyController,
   updateCompanyController,
   deleteCompanyController,
+  updateCompanyValidationStatusController
 };
