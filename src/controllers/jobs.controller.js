@@ -211,13 +211,46 @@ const latestJobsController = asyncHandler(async (req, res) => {
 const myJobsController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
 
-  const myJobs = await jobsModel.find({
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const search = req.query.search || "";
+  const status = req.query.status;
+
+  const skip = (page - 1) * limit;
+
+  const query = {
     recruiterId: recruiterId,
-  });
+  };
+
+  if (search) {
+    query.title = { $regex: search, $options: "i" };
+  }
+
+  if (status !== undefined && status !== "") {
+    query.status = status;
+  }
+
+  const totalJobs = await jobsModel.countDocuments(query);
+
+  const myJobs = await jobsModel
+    .find(query)
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  const totalPages = Math.ceil(totalJobs / limit);
 
   res.status(200).json({
     success: true,
     message: "My Jobs fetched successfully",
+    pagination: {
+      total: totalJobs,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
     data: myJobs,
   });
 });
