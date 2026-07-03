@@ -53,7 +53,7 @@ const getCompanyController = asyncHandler(async (req, res) => {
   const pageSize = Number(limit);
   const skip = (pageNumber - 1) * pageSize;
 
-  const totalCompany = await companyModel.countDocuments({...query, isVerified: true});
+  const totalCompany = await companyModel.countDocuments({ ...query, isVerified: true });
 
   let companyQuery = companyModel.find({ ...query, isVerified: true });
 
@@ -232,17 +232,30 @@ const myCompanyController = asyncHandler(async (req, res) => {
 
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
+  const search = req.query.search || "";
+  const isVerified = req.query.isVerified;
 
   const skip = (page - 1) * limit;
 
-  const totalCompanies = await companyModel.countDocuments({
+  const query = {
     ownedBy: recruiterId,
-  });
+  };
+
+  if (search) {
+    query.name = { $regex: search, $options: "i" };
+  }
+
+if (isVerified !== undefined && isVerified !== "") {
+  if (isVerified === "true") {
+    query.isVerified = true;
+  } else if (isVerified === "pending") {
+    query.isVerified = false;
+  }
+}
+  const totalCompanies = await companyModel.countDocuments(query);
 
   const myCompany = await companyModel
-    .find({
-      ownedBy: recruiterId,
-    })
+    .find(query)
     .skip(skip)
     .limit(limit)
     .sort({ createdAt: -1 });
