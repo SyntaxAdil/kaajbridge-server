@@ -97,8 +97,6 @@ const getCompanyByIdController = asyncHandler(async (req, res) => {
     data: companyData,
   });
 });
-
-// update company
 const updateCompanyController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
   const companyId = req.params.id;
@@ -112,6 +110,7 @@ const updateCompanyController = asyncHandler(async (req, res) => {
       message: "Company not found",
     });
   }
+
   if (findCompany.ownedBy.toString() !== recruiterId) {
     return res.status(403).json({
       success: false,
@@ -119,10 +118,28 @@ const updateCompanyController = asyncHandler(async (req, res) => {
     });
   }
 
+  const allowedUpdates = {
+    name: body.name,
+    industry: body.industry,
+    description: body.description,
+    address: body.address ? {
+      street: body.address.street,
+      city: body.address.city,
+      country: body.address.country
+    } : undefined,
+    size: body.size,
+    website: body.website,
+    companyLogo: body.companyLogo
+  };
+
+  Object.keys(allowedUpdates).forEach(
+    (key) => allowedUpdates[key] === undefined && delete allowedUpdates[key]
+  );
+
   const updatedCompany = await companyModel.findByIdAndUpdate(
     companyId,
     {
-      $set: body,
+      $set: allowedUpdates,
     },
     {
       new: true,
