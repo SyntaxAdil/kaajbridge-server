@@ -140,17 +140,19 @@ const updateJobController = asyncHandler(async (req, res) => {
     });
   }
 
-  if (findJob.recruiterId !== recruiterId) {
+  if (findJob.recruiterId.toString() !== recruiterId.toString()) {
     return res.status(403).json({
       success: false,
       message: "Unauthorized",
     });
   }
 
+  const { company, companyLogo, ...allowedUpdates } = body;
+
   const updatedJob = await jobsModel.findByIdAndUpdate(
     jobId,
     {
-      $set: body,
+      $set: allowedUpdates,
     },
     {
       new: true,
