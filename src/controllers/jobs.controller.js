@@ -32,6 +32,23 @@ const newJobController = asyncHandler(async (req, res) => {
 // get jobs data with filters ,search and sort
 
 const getJobsController = asyncHandler(async (req, res) => {
+  const now = new Date();
+
+  await jobsModel.updateMany(
+    {
+      applicationDeadline: { $lt: now },
+      status: "open"
+    }, {
+    $set: { status: "closed" }
+  }
+  )
+  await jobsModel.updateMany(
+    {
+      applicationDeadline: { $gt: now },
+      status: "closed"
+    }, {
+    $set: { status: "open" }
+  })
   const {
     search,
     type,
@@ -73,6 +90,7 @@ const getJobsController = asyncHandler(async (req, res) => {
 
   // Total matching jobs
   const totalJobs = await jobsModel.countDocuments(query);
+
 
   // Query
   let jobsQuery = jobsModel.find(query);
@@ -212,7 +230,21 @@ const latestJobsController = asyncHandler(async (req, res) => {
 
 const myJobsController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
-
+  const now = new Date()
+  await jobsModel.updateMany(
+    {
+      applicationDeadline: { $lt: now },
+      status: "open"
+    }, {
+    $set: { status: "closed" }
+  })
+  await jobsModel.updateMany(
+    {
+      applicationDeadline: { $gt: now },
+      status: "closed"
+    }, {
+    $set: { status: "open" }
+  })
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const search = req.query.search || "";
