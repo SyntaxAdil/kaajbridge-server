@@ -4,10 +4,21 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 // post new company
 const newCompanyController = asyncHandler(async (req, res) => {
+
+  const alreadyExist = await companyModel.findOne({ name: req.body.name });
+
+  if (alreadyExist) {
+    return res.status(400).json({
+      success: false,
+      message: "Company already exists",
+    });
+  }
+
   const company = await companyModel.create({
     ...req.body,
     ownedBy: req.user.sub,
   });
+
 
   res.status(201).json({
     success: true,
@@ -15,6 +26,7 @@ const newCompanyController = asyncHandler(async (req, res) => {
     data: company,
   });
 });
+// get all company
 const getCompanyController = asyncHandler(async (req, res) => {
   const {
     search,
@@ -97,6 +109,8 @@ const getCompanyByIdController = asyncHandler(async (req, res) => {
     data: companyData,
   });
 });
+
+// UPDATE COMPANY 
 const updateCompanyController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
   const companyId = req.params.id;
@@ -257,13 +271,13 @@ const myCompanyController = asyncHandler(async (req, res) => {
     query.name = { $regex: search, $options: "i" };
   }
 
-if (isVerified !== undefined && isVerified !== "") {
-  if (isVerified === "true") {
-    query.isVerified = true;
-  } else if (isVerified === "pending") {
-    query.isVerified = false;
+  if (isVerified !== undefined && isVerified !== "") {
+    if (isVerified === "true") {
+      query.isVerified = true;
+    } else if (isVerified === "pending") {
+      query.isVerified = false;
+    }
   }
-}
   const totalCompanies = await companyModel.countDocuments(query);
 
   const myCompany = await companyModel
@@ -273,7 +287,7 @@ if (isVerified !== undefined && isVerified !== "") {
     .sort({ createdAt: -1 });
 
   const totalPages = Math.ceil(totalCompanies / limit);
-
+  const allComapniesName = await companyModel.find({ ownedBy: recruiterId }).select("name companyLogo");
   res.status(200).json({
     success: true,
     message: "My Company fetched successfully",
@@ -286,8 +300,11 @@ if (isVerified !== undefined && isVerified !== "") {
       hasPrevPage: page > 1,
     },
     data: myCompany,
+    allCompanyName: allComapniesName
   });
 });
+
+
 // exports
 export default {
   newCompanyController,

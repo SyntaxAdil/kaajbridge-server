@@ -8,7 +8,7 @@ const newJobController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
   const { company } = req.body;
   const findCompanyForTheRecrutier = await companyModel.findOne({
-    _id: company,
+    name: company,
     ownedBy: recruiterId,
   });
   if (!findCompanyForTheRecrutier) {
