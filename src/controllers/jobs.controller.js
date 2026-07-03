@@ -10,11 +10,12 @@ const newJobController = asyncHandler(async (req, res) => {
   const findCompanyForTheRecrutier = await companyModel.findOne({
     name: company,
     ownedBy: recruiterId,
+    isVerified: true,
   });
   if (!findCompanyForTheRecrutier) {
     return res.status(404).json({
       success: false,
-      message: "Unauthorized ! No company found",
+      message: "Unauthorized ! No verified company found",
     });
   }
   const job = await jobsModel.create({
