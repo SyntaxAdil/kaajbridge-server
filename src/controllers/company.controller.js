@@ -15,54 +15,49 @@ const newCompanyController = asyncHandler(async (req, res) => {
     data: company,
   });
 });
-
-// get compines data with filters and all
 const getCompanyController = asyncHandler(async (req, res) => {
   const {
     search,
     industry,
     location,
+    size,
     sort = "newest",
     page = 1,
     limit = 10,
   } = req.query;
 
-  const query = {};
+  const query = { isVerified: true };
 
-  // Search
   if (search) {
-    query.name = {
-      $regex: search,
-      $options: "i",
-    };
+    query.name = { $regex: search, $options: "i" };
   }
 
-  // Filters
   if (industry) {
     query.industry = industry;
   }
 
   if (location) {
-    query["address.country"] = {
-      $regex: location,
-      $options: "i",
-    };
+    query["address.country"] = { $regex: location, $options: "i" };
+  }
+
+  if (size) {
+    query.size = size;
   }
 
   const pageNumber = Number(page);
   const pageSize = Number(limit);
   const skip = (pageNumber - 1) * pageSize;
 
-  const totalCompany = await companyModel.countDocuments({ ...query, isVerified: true });
+  const totalCompany = await companyModel.countDocuments(query);
 
-  let companyQuery = companyModel.find({ ...query, isVerified: true });
+  let companyQuery = companyModel.find(query);
 
   if (sort === "newest") {
     companyQuery = companyQuery.sort({ createdAt: -1 });
-  }
-
-  if (sort === "oldest") {
+  } else if (sort === "oldest") {
     companyQuery = companyQuery.sort({ createdAt: 1 });
+  } else if (sort === "name_asc") {
+    companyQuery = companyQuery.sort({ name: 1 });
   }
 
   companyQuery = companyQuery.skip(skip).limit(pageSize);
