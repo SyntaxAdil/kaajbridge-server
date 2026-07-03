@@ -53,7 +53,7 @@ const getCompanyController = asyncHandler(async (req, res) => {
   const pageSize = Number(limit);
   const skip = (pageNumber - 1) * pageSize;
 
-  const totalCompany = await companyModel.countDocuments(query);
+  const totalCompany = await companyModel.countDocuments({...query, isVerified: true});
 
   let companyQuery = companyModel.find({ ...query, isVerified: true });
 
