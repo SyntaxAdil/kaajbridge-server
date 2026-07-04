@@ -3,14 +3,15 @@ import jobsModel from "../models/jobs.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import companyModel from "../models/company.model.js";
 
-// post new job
+const allowedJobStatuses = ["open", "closed"];
+
 const newJobController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
   const { company } = req.body;
   const findCompanyForTheRecrutier = await companyModel.findOne({
     name: company,
     ownedBy: recruiterId,
-    isVerified: true,
+    verificationStatus: "verified",
   });
   if (!findCompanyForTheRecrutier) {
     return res.status(404).json({
@@ -29,8 +30,6 @@ const newJobController = asyncHandler(async (req, res) => {
     data: job,
   });
 });
-
-// get jobs data with filters ,search and sort
 
 const getJobsController = asyncHandler(async (req, res) => {
   const now = new Date();
@@ -62,7 +61,6 @@ const getJobsController = asyncHandler(async (req, res) => {
 
   const query = {};
 
-  // Search
   if (search) {
     query.$or = [
       { title: { $regex: search, $options: "i" } },
@@ -71,7 +69,6 @@ const getJobsController = asyncHandler(async (req, res) => {
     ];
   }
 
-  // Filters
   if (type) {
     query.type = type;
   }
@@ -84,19 +81,14 @@ const getJobsController = asyncHandler(async (req, res) => {
     query.location = { $regex: location, $options: "i" };
   }
 
-  // Pagination
   const pageNumber = Number(page);
   const pageSize = Number(limit);
   const skip = (pageNumber - 1) * pageSize;
 
-  // Total matching jobs
   const totalJobs = await jobsModel.countDocuments(query);
 
-
-  // Query
   let jobsQuery = jobsModel.find(query);
 
-  // Sorting
   if (sort === "newest") {
     jobsQuery = jobsQuery.sort({ createdAt: -1 });
   }
@@ -119,7 +111,88 @@ const getJobsController = asyncHandler(async (req, res) => {
   });
 });
 
-// get particular one job with jobId
+const adminGetAllJobsController = asyncHandler(async (req, res) => {
+  const now = new Date();
+
+  await jobsModel.updateMany(
+    {
+      applicationDeadline: { $lt: now },
+      status: "open"
+    }, {
+    $set: { status: "closed" }
+  })
+  await jobsModel.updateMany(
+    {
+      applicationDeadline: { $gt: now },
+      status: "closed"
+    }, {
+    $set: { status: "open" }
+  })
+
+  const {
+    search,
+    status,
+    type,
+    experience,
+    company,
+    sort = "newest",
+    page = 1,
+    limit = 10,
+  } = req.query;
+
+  const query = {};
+
+  if (search) {
+    query.$or = [
+      { title: { $regex: search, $options: "i" } },
+      { company: { $regex: search, $options: "i" } },
+      { skills: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  if (status && allowedJobStatuses.includes(status)) {
+    query.status = status;
+  }
+
+  if (type) {
+    query.type = type;
+  }
+
+  if (experience) {
+    query.experience = experience;
+  }
+
+  if (company) {
+    query.company = company;
+  }
+
+  const pageNumber = Number(page);
+  const pageSize = Number(limit);
+  const skip = (pageNumber - 1) * pageSize;
+
+  const totalJobs = await jobsModel.countDocuments(query);
+
+  let jobsQuery = jobsModel.find(query);
+
+  if (sort === "newest") {
+    jobsQuery = jobsQuery.sort({ createdAt: -1 });
+  } else if (sort === "oldest") {
+    jobsQuery = jobsQuery.sort({ createdAt: 1 });
+  }
+
+  jobsQuery = jobsQuery.skip(skip).limit(pageSize);
+
+  const jobs = await jobsQuery;
+
+  res.status(200).json({
+    success: true,
+    totalJobs,
+    currentPage: pageNumber,
+    totalPages: Math.ceil(totalJobs / pageSize),
+    count: jobs.length,
+    data: jobs,
+  });
+});
 
 const getJobByIdController = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -142,8 +215,6 @@ const getJobByIdController = asyncHandler(async (req, res) => {
     data: jobData,
   });
 });
-
-//update logic for jobs
 
 const updateJobController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
@@ -186,7 +257,6 @@ const updateJobController = asyncHandler(async (req, res) => {
   });
 });
 
-// delete logic for jobs
 const deleteJobController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
   const jobId = req.params.id;
@@ -215,7 +285,32 @@ const deleteJobController = asyncHandler(async (req, res) => {
     data: deleteJob,
   });
 });
-// latest jobs
+
+const adminDeleteJobController = asyncHandler(async (req, res) => {
+  const jobId = req.params.id;
+
+  if (!mongoose.Types.ObjectId.isValid(jobId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Job Id",
+    });
+  }
+
+  const deletedJob = await jobsModel.findByIdAndDelete(jobId);
+
+  if (!deletedJob) {
+    return res.status(404).json({
+      success: false,
+      message: "Job not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Job deleted successfully",
+    data: deletedJob,
+  });
+});
 
 const latestJobsController = asyncHandler(async (req, res) => {
   const jobData = await jobsModel.find().sort({ createdAt: -1 }).limit(6);
@@ -226,8 +321,6 @@ const latestJobsController = asyncHandler(async (req, res) => {
     data: jobData,
   });
 });
-
-// my jobs route
 
 const myJobsController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
@@ -293,9 +386,11 @@ const myJobsController = asyncHandler(async (req, res) => {
 export default {
   newJobController,
   getJobsController,
+  adminGetAllJobsController,
   getJobByIdController,
   latestJobsController,
   myJobsController,
   updateJobController,
   deleteJobController,
+  adminDeleteJobController,
 };

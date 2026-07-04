@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 import companyModel from "../models/company.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import { getDB } from "../config/db.js";
+
+const allowedStatuses = ["pending", "verified", "rejected"];
 
 const newCompanyController = asyncHandler(async (req, res) => {
   const alreadyExist = await companyModel.findOne({ name: req.body.name });
@@ -15,6 +16,7 @@ const newCompanyController = asyncHandler(async (req, res) => {
 
   const company = await companyModel.create({
     ...req.body,
+    verificationStatus: "pending",
     ownedBy: [
       {
         id: req.user.sub || req.user.id || req.user._id,
@@ -42,7 +44,7 @@ const getCompanyController = asyncHandler(async (req, res) => {
     limit = 10,
   } = req.query;
 
-  const query = { isVerified: true };
+  const query = { verificationStatus: "verified" };
 
   if (search) {
     query.name = { $regex: search, $options: "i" };
@@ -58,6 +60,60 @@ const getCompanyController = asyncHandler(async (req, res) => {
 
   if (size) {
     query.size = size;
+  }
+
+  const pageNumber = Number(page);
+  const pageSize = Number(limit);
+  const skip = (pageNumber - 1) * pageSize;
+
+  const totalCompany = await companyModel.countDocuments(query);
+
+  let companyQuery = companyModel.find(query);
+
+  if (sort === "newest") {
+    companyQuery = companyQuery.sort({ createdAt: -1 });
+  } else if (sort === "oldest") {
+    companyQuery = companyQuery.sort({ createdAt: 1 });
+  } else if (sort === "name_asc") {
+    companyQuery = companyQuery.sort({ name: 1 });
+  }
+
+  companyQuery = companyQuery.skip(skip).limit(pageSize);
+
+  const companies = await companyQuery;
+
+  res.status(200).json({
+    success: true,
+    totalCompany,
+    currentPage: pageNumber,
+    totalPages: Math.ceil(totalCompany / pageSize),
+    count: companies.length,
+    data: companies,
+  });
+});
+
+const adminGetAllCompaniesController = asyncHandler(async (req, res) => {
+  const {
+    search,
+    status,
+    industry,
+    sort = "newest",
+    page = 1,
+    limit = 10,
+  } = req.query;
+
+  const query = {};
+
+  if (status && allowedStatuses.includes(status)) {
+    query.verificationStatus = status;
+  }
+
+  if (search) {
+    query.name = { $regex: search, $options: "i" };
+  }
+
+  if (industry) {
+    query.industry = industry;
   }
 
   const pageNumber = Number(page);
@@ -175,6 +231,14 @@ const updateCompanyValidationStatusController = asyncHandler(
   async (req, res) => {
     const companyId = req.params.id;
     const status = req.body.status;
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status value",
+      });
+    }
+
     const company = await companyModel.findById(companyId);
     if (!company) {
       return res.status(404).json({
@@ -184,7 +248,7 @@ const updateCompanyValidationStatusController = asyncHandler(
     }
     const updatedCompany = await companyModel.findByIdAndUpdate(companyId, {
       $set: {
-        isVerified: status
+        verificationStatus: status
       }
     }, {
       new: true,
@@ -229,10 +293,36 @@ const deleteCompanyController = asyncHandler(async (req, res) => {
   });
 });
 
+const adminDeleteCompanyController = asyncHandler(async (req, res) => {
+  const companyId = req.params.id;
+
+  if (!mongoose.Types.ObjectId.isValid(companyId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Company Id",
+    });
+  }
+
+  const deletedCompany = await companyModel.findByIdAndDelete(companyId);
+
+  if (!deletedCompany) {
+    return res.status(404).json({
+      success: false,
+      message: "Company not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Company deleted successfully",
+    data: deletedCompany,
+  });
+});
+
 const topCompaniesController = asyncHandler(async (req, res) => {
   const company = await companyModel
     .find({
-      isVerified: true,
+      verificationStatus: "verified",
     })
     .limit(8);
 
@@ -257,7 +347,7 @@ const myCompanyController = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const search = req.query.search || "";
-  const isVerified = req.query.isVerified;
+  const status = req.query.status;
 
   const skip = (page - 1) * limit;
 
@@ -269,13 +359,10 @@ const myCompanyController = asyncHandler(async (req, res) => {
     query.name = { $regex: search, $options: "i" };
   }
 
-  if (isVerified !== undefined && isVerified !== "") {
-    if (isVerified === "true") {
-      query.isVerified = true;
-    } else if (isVerified === "pending") {
-      query.isVerified = false;
-    }
+  if (status && allowedStatuses.includes(status)) {
+    query.verificationStatus = status;
   }
+
   const totalCompanies = await companyModel.countDocuments(query);
 
   const myCompany = await companyModel
@@ -305,10 +392,12 @@ const myCompanyController = asyncHandler(async (req, res) => {
 export default {
   newCompanyController,
   getCompanyController,
+  adminGetAllCompaniesController,
   getCompanyByIdController,
   topCompaniesController,
   myCompanyController,
   updateCompanyController,
   deleteCompanyController,
+  adminDeleteCompanyController,
   updateCompanyValidationStatusController
 };

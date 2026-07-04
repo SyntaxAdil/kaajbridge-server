@@ -5,11 +5,23 @@ import checkRoleMiddleware from "../middleware/role.middleware.js";
 
 const router = express.Router();
 
-// Public Routes
 router.get("/", companyController.getCompanyController);
 router.get("/top-companies", companyController.topCompaniesController);
 
-// update company status by admin
+router.get(
+  "/admin/all",
+  authMiddleware,
+  checkRoleMiddleware("admin"),
+  companyController.adminGetAllCompaniesController,
+);
+
+router.delete(
+  "/admin/:id",
+  authMiddleware,
+  checkRoleMiddleware("admin"),
+  companyController.adminDeleteCompanyController,
+);
+
 router.patch(
   "/:id/status",
   authMiddleware,
@@ -17,7 +29,6 @@ router.patch(
   companyController.updateCompanyValidationStatusController,
 );
 
-//  Protected Routes for Recruiter
 router.post(
   "/",
   authMiddleware,
@@ -46,12 +57,10 @@ router.delete(
   companyController.deleteCompanyController,
 );
 
-// protected route for seeker
 router.get(
   "/:id",
   authMiddleware,
-  checkRoleMiddleware(["seeker", "recruiter"]),
-
+  checkRoleMiddleware(["seeker", "recruiter","admin"]),
   companyController.getCompanyByIdController,
 );
 

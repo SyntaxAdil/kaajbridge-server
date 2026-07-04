@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 const companySchema = new mongoose.Schema(
   {
     name: {
@@ -66,9 +65,10 @@ const companySchema = new mongoose.Schema(
       facebook: String,
       twitter: String,
     },
-    isVerified: {
-      type: Boolean,
-      default: false,
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+      default: "pending",
     },
     ownedBy: [
       {
@@ -80,6 +80,5 @@ const companySchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-
 export default mongoose.models.Company ||
   mongoose.model("Company", companySchema);

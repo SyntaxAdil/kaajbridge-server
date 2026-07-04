@@ -5,11 +5,23 @@ import checkRoleMiddleware from "../middleware/role.middleware.js";
 
 const router = express.Router();
 
-// public routes
 router.get("/", jobsController.getJobsController);
 router.get("/latest-jobs", jobsController.latestJobsController);
 
-// protected routes for recruiter
+router.get(
+  "/admin/all",
+  authMiddleware,
+  checkRoleMiddleware("admin"),
+  jobsController.adminGetAllJobsController,
+);
+
+router.delete(
+  "/admin/:id",
+  authMiddleware,
+  checkRoleMiddleware("admin"),
+  jobsController.adminDeleteJobController,
+);
+
 router.post(
   "/",
   authMiddleware,
@@ -35,11 +47,10 @@ router.delete(
   jobsController.deleteJobController,
 );
 
-// protected for seeker
 router.get(
   "/:id",
   authMiddleware,
-  checkRoleMiddleware(["seeker","recruiter"]),
+  checkRoleMiddleware(["seeker", "recruiter", "admin"]),
   jobsController.getJobByIdController,
 );
 
