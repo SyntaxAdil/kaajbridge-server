@@ -4,15 +4,11 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { getDB } from "../config/db.js";
 import mongoose from "mongoose";
 
+const allowedStatuses = ["pending", "reviewed", "shortlisted", "interviewing", "accepted", "rejected"];
+
 const attachApplicantInfo = async (applications) => {
   const db = getDB();
-  const applicantIds = applications.map((app) => {
-    try {
-      return new mongoose.Types.ObjectId(app.applicant);
-    } catch {
-      return app.applicant;
-    }
-  });
+  const applicantIds = applications.map((app) => app.applicant?.id).filter(Boolean);
 
   const users = await db
     .collection("user")
@@ -23,7 +19,7 @@ const attachApplicantInfo = async (applications) => {
 
   return applications.map((application) => ({
     ...application.toObject(),
-    applicantInfo: userMap.get(application.applicant?.toString()) || null,
+    applicantInfo: userMap.get(application.applicant?.id) || null,
   }));
 };
 
@@ -63,14 +59,12 @@ const postApplicationController = asyncHandler(async (req, res) => {
 
   const application = await applicationModel.create({
     job,
-    applicant:
-    {
+    applicant: {
       id: req.user.sub,
       name: req.user.name,
       email: req.user.email,
-      image: req.user.image || req.user.avatar || ""
-    }
-    ,
+      image: req.user.image || req.user.avatar || "",
+    },
     recruiterId: finalRecruiterId,
     resume,
     coverLetter,
@@ -89,6 +83,7 @@ const postApplicationController = asyncHandler(async (req, res) => {
     data: application,
   });
 });
+
 const getAllApplicationController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
   const page = parseInt(req.query.page) || 1;
@@ -96,7 +91,6 @@ const getAllApplicationController = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
   const { status, jobId } = req.query;
 
-  const allowedStatuses = ["pending", "reviewed", "shortlisted", "interviewing", "accepted", "rejected"];
   let filterQuery = {};
 
   if (req.user.role !== "admin") {
@@ -141,7 +135,6 @@ const adminGetAllApplicationsController = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
   const { status, jobId } = req.query;
 
-  const allowedStatuses = ["pending", "reviewed", "shortlisted", "interviewing", "accepted", "rejected"];
   let filterQuery = {};
 
   if (status && allowedStatuses.includes(status)) {
@@ -179,8 +172,8 @@ const adminGetAllApplicationsController = asyncHandler(async (req, res) => {
 const updateApplicationController = asyncHandler(async (req, res) => {
   const { status } = req.body;
 
-  const allowedStatuses = ["pending", "reviewed", "shortlisted", "rejected", "hired", "interviewing"];
-  if (!allowedStatuses.includes(status)) {
+  const validStatuses = ["pending", "reviewed", "shortlisted", "rejected", "hired", "interviewing"];
+  if (!validStatuses.includes(status)) {
     return res.status(400).json({
       success: false,
       message: "Invalid status value",
@@ -229,7 +222,7 @@ const deleteApplicationController = asyncHandler(async (req, res) => {
   } else {
     query = {
       _id: req.params.id,
-      applicant: req.user.sub,
+      "applicant.id": req.user.sub,
     };
   }
 
@@ -244,7 +237,7 @@ const deleteApplicationController = asyncHandler(async (req, res) => {
 
   try {
     await db.collection("user").updateOne(
-      { _id:application.applicant.id },
+      { _id: application.applicant.id },
       { $pull: { applications: application._id } }
     );
   } catch (err) {
@@ -263,8 +256,7 @@ const myApplicationController = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
   const { status } = req.query;
 
-  const allowedStatuses = ["pending", "reviewed", "shortlisted", "interviewing", "accepted", "rejected"];
-  let filterQuery = { applicant: req.user.sub };
+  let filterQuery = { "applicant.id": req.user.sub };
   if (status && allowedStatuses.includes(status)) {
     filterQuery.status = status;
   }
@@ -315,7 +307,7 @@ const viewApplicationController = asyncHandler(async (req, res) => {
         });
       }
     } else {
-      if (application.applicant !== req.user.sub) {
+      if (application.applicant?.id !== req.user.sub) {
         return res.status(403).json({
           success: false,
           message: "Unauthorized",
@@ -326,12 +318,9 @@ const viewApplicationController = asyncHandler(async (req, res) => {
 
   const db = getDB();
 
-  let userQuery = application.applicant;
-  try {
-    userQuery = new mongoose.Types.ObjectId(application.applicant);
-  } catch { }
-
-  const applicantInfo = await db.collection("user").findOne({ _id: userQuery });
+  const applicantInfo = await db
+    .collection("user")
+    .findOne({ _id: application.applicant?.id });
 
   res.status(200).json({
     success: true,
