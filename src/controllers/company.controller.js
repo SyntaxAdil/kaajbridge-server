@@ -1,10 +1,9 @@
 import mongoose from "mongoose";
 import companyModel from "../models/company.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { getDB } from "../config/db.js";
 
-// post new company
 const newCompanyController = asyncHandler(async (req, res) => {
-
   const alreadyExist = await companyModel.findOne({ name: req.body.name });
 
   if (alreadyExist) {
@@ -16,9 +15,14 @@ const newCompanyController = asyncHandler(async (req, res) => {
 
   const company = await companyModel.create({
     ...req.body,
-    ownedBy: req.user.sub,
+    ownedBy: [
+      {
+        id: req.user.sub || req.user.id || req.user._id,
+        name: req.user.name,
+        image: req.user.image || req.user.avatar || ""
+      }
+    ],
   });
-
 
   res.status(201).json({
     success: true,
@@ -26,7 +30,7 @@ const newCompanyController = asyncHandler(async (req, res) => {
     data: company,
   });
 });
-// get all company
+
 const getCompanyController = asyncHandler(async (req, res) => {
   const {
     search,
@@ -86,8 +90,6 @@ const getCompanyController = asyncHandler(async (req, res) => {
   });
 });
 
-// get one companty data
-
 const getCompanyByIdController = asyncHandler(async (req, res) => {
   const { id } = req.params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -110,7 +112,6 @@ const getCompanyByIdController = asyncHandler(async (req, res) => {
   });
 });
 
-// UPDATE COMPANY 
 const updateCompanyController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
   const companyId = req.params.id;
@@ -125,7 +126,9 @@ const updateCompanyController = asyncHandler(async (req, res) => {
     });
   }
 
-  if (findCompany.ownedBy.toString() !== recruiterId) {
+  const hasOwnership = findCompany.ownedBy && findCompany.ownedBy.some(owner => owner.id === recruiterId);
+
+  if (!hasOwnership) {
     return res.status(403).json({
       success: false,
       message: "Unauthorized",
@@ -168,37 +171,33 @@ const updateCompanyController = asyncHandler(async (req, res) => {
   });
 });
 
-// update company validation status
-
 const updateCompanyValidationStatusController = asyncHandler(
   async (req, res) => {
-    {
-      const companyId = req.params.id;
-      const status = req.body.status;
-      const company = await companyModel.findById(companyId);
-      if (!company) {
-        return res.status(404).json({
-          success: false,
-          message: "Company not found"
-        })
-      }
-      const updatedCompany = await companyModel.findByIdAndUpdate(companyId, {
-        $set: {
-          isVerified: status
-        }
-      }, {
-        new: true,
-        runValidators: true
-      })
-      res.status(200).json({
-        success: true,
-        message: "Company updated successfully",
-        data: updatedCompany
+    const companyId = req.params.id;
+    const status = req.body.status;
+    const company = await companyModel.findById(companyId);
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: "Company not found"
       })
     }
-  })
+    const updatedCompany = await companyModel.findByIdAndUpdate(companyId, {
+      $set: {
+        isVerified: status
+      }
+    }, {
+      new: true,
+      runValidators: true
+    })
+    res.status(200).json({
+      success: true,
+      message: "Company updated successfully",
+      data: updatedCompany
+    })
+  }
+)
 
-// delete company
 const deleteCompanyController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
   const companyId = req.params.id;
@@ -212,7 +211,9 @@ const deleteCompanyController = asyncHandler(async (req, res) => {
     });
   }
 
-  if (findCompany.ownedBy.toString() !== recruiterId) {
+  const hasOwnership = findCompany.ownedBy && findCompany.ownedBy.some(owner => owner.id === recruiterId);
+
+  if (!hasOwnership) {
     return res.status(403).json({
       success: false,
       message: "Unauthorized",
@@ -228,8 +229,6 @@ const deleteCompanyController = asyncHandler(async (req, res) => {
   });
 });
 
-// top companies
-
 const topCompaniesController = asyncHandler(async (req, res) => {
   const company = await companyModel
     .find({
@@ -241,7 +240,7 @@ const topCompaniesController = asyncHandler(async (req, res) => {
     return {
       name: c.name,
       companyLogo: c.companyLogo,
-      location: c.address.country,
+      location: c.address?.country,
     };
   });
 
@@ -252,7 +251,6 @@ const topCompaniesController = asyncHandler(async (req, res) => {
   });
 });
 
-// my company
 const myCompanyController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
 
@@ -264,7 +262,7 @@ const myCompanyController = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const query = {
-    ownedBy: recruiterId,
+    "ownedBy.id": recruiterId,
   };
 
   if (search) {
@@ -287,7 +285,7 @@ const myCompanyController = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 });
 
   const totalPages = Math.ceil(totalCompanies / limit);
-  const allComapniesName = await companyModel.find({ ownedBy: recruiterId }).select("name companyLogo");
+  const allComapniesName = await companyModel.find({ "ownedBy.id": recruiterId }).select("name companyLogo");
   res.status(200).json({
     success: true,
     message: "My Company fetched successfully",
@@ -304,8 +302,6 @@ const myCompanyController = asyncHandler(async (req, res) => {
   });
 });
 
-
-// exports
 export default {
   newCompanyController,
   getCompanyController,

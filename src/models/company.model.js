@@ -37,12 +37,12 @@ const companySchema = new mongoose.Schema(
         "ecommerce",
         "media",
         "manufacturing",
-        "construction",     
-        "telecommunication", 
-        "power_energy",      
-        "automobile",         
-        "garments_textile",   
-        "agro_food",          
+        "construction",
+        "telecommunication",
+        "power_energy",
+        "automobile",
+        "garments_textile",
+        "agro_food",
         "other"
       ],
     },
@@ -70,9 +70,13 @@ const companySchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    ownedBy: {
-      type: String,
-    },
+    ownedBy: [
+      {
+        id: { type: String, required: true },
+        name: { type: String, required: true },
+        image: { type: String }
+      }
+    ]
   },
   { timestamps: true },
 );
