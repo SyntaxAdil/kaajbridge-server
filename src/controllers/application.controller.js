@@ -3,7 +3,7 @@ import jobsModel from "../models/jobs.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { getDB } from "../config/db.js";
 
-// apply by candidate
+// post application by seeker
 const postApplicationController = asyncHandler(async (req, res) => {
   const { job, resume, coverLetter, experience, expectedSalary } = req.body;
 
@@ -44,9 +44,30 @@ const postApplicationController = asyncHandler(async (req, res) => {
   });
 });
 
-// all application — recruiter only
+const attachApplicantInfo = async (applications) => {
+  const db = getDB();
+
+  return Promise.all(
+    applications.map(async (application) => {
+      const user = await db.collection("user").findOne(
+        { id: application.applicant },
+        { projection: { name: 1, email: 1, image: 1 } }
+      );
+
+      return {
+        ...application.toObject(),
+        applicantInfo: user,
+      };
+    })
+  );
+};
+// get all application by seeker
 const getAllApplicationController = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const { status } = req.query;
 
   const job = await jobsModel.findById(jobId);
 
@@ -57,51 +78,97 @@ const getAllApplicationController = asyncHandler(async (req, res) => {
     });
   }
 
-  if (job.recruiterId !== req.user.sub) {
+  if (job.recruiterId !== req.user.sub && req.user.role !== "admin") {
     return res.status(403).json({
       success: false,
       message: "Unauthorized",
     });
   }
 
+  const allowedStatuses = ["pending", "reviewed", "shortlisted", "interviewing", "accepted", "rejected"];
+  let filterQuery = { job: jobId };
+  if (status && allowedStatuses.includes(status)) {
+    filterQuery.status = status;
+  }
+
+  const totalApplications = await applicationModel.countDocuments(filterQuery);
+
   const applications = await applicationModel
-    .find({ job: jobId })
-    .populate("job", "title company location");
+    .find(filterQuery)
+    .populate("job", "title company location")
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
 
-  const db = getDB();
-
-  const applicationsWithUser = await Promise.all(
-    applications.map(async (application) => {
-      const user = await db.collection("user").findOne(
-        {
-          id: application.applicant,
-        },
-        {
-          projection: {
-            name: 1,
-            email: 1,
-            image: 1,
-          },
-        }
-      );
-
-      return {
-        ...application.toObject(),
-        applicantInfo: user,
-      };
-    })
-  );
+  const applicationsWithUser = await attachApplicantInfo(applications);
 
   res.status(200).json({
     success: true,
     count: applicationsWithUser.length,
+    pagination: {
+      total: totalApplications,
+      page,
+      limit,
+      pages: Math.ceil(totalApplications / limit),
+    },
     data: applicationsWithUser,
   });
 });
 
-// recruiter application update
+// admin can view all the application
+const adminGetAllApplicationsController = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const { status, jobId } = req.query;
+
+  const allowedStatuses = ["pending", "reviewed", "shortlisted", "interviewing", "accepted", "rejected"];
+  let filterQuery = {};
+
+  if (status && allowedStatuses.includes(status)) {
+    filterQuery.status = status;
+  }
+
+  if (jobId) {
+    filterQuery.job = jobId;
+  }
+
+  const totalApplications = await applicationModel.countDocuments(filterQuery);
+
+  const applications = await applicationModel
+    .find(filterQuery)
+    .populate("job", "title company location")
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  const applicationsWithUser = await attachApplicantInfo(applications);
+
+  res.status(200).json({
+    success: true,
+    count: applicationsWithUser.length,
+    pagination: {
+      total: totalApplications,
+      page,
+      limit,
+      pages: Math.ceil(totalApplications / limit),
+    },
+    data: applicationsWithUser,
+  });
+});
+
+// update application by seeker
+
 const updateApplicationController = asyncHandler(async (req, res) => {
   const { status } = req.body;
+
+  const allowedStatuses = ["pending", "reviewed", "shortlisted", "interviewing", "accepted", "rejected"];
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid status value",
+    });
+  }
 
   const application = await applicationModel.findById(req.params.id);
 
@@ -112,7 +179,7 @@ const updateApplicationController = asyncHandler(async (req, res) => {
     });
   }
 
-  if (application.recruiterId !== req.user.sub) {
+  if (application.recruiterId !== req.user.sub && req.user.role !== "admin") {
     return res.status(403).json({
       success: false,
       message: "Unauthorized",
@@ -128,13 +195,16 @@ const updateApplicationController = asyncHandler(async (req, res) => {
   });
 });
 
-// delete application
+// delete application by seeker
 const deleteApplicationController = asyncHandler(async (req, res) => {
   const isRecruiter = req.user.role === "recruiter";
+  const isAdmin = req.user.role === "admin";
 
   let query = {};
 
-  if (isRecruiter) {
+  if (isAdmin) {
+    query = { _id: req.params.id };
+  } else if (isRecruiter) {
     query = {
       _id: req.params.id,
       recruiterId: req.user.sub,
@@ -161,20 +231,42 @@ const deleteApplicationController = asyncHandler(async (req, res) => {
   });
 });
 
-// my application route
+// my application by seeker
 const myApplicationController = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const { status } = req.query;
+
+  const allowedStatuses = ["pending", "reviewed", "shortlisted", "interviewing", "accepted", "rejected"];
+  let filterQuery = { applicant: req.user.sub };
+  if (status && allowedStatuses.includes(status)) {
+    filterQuery.status = status;
+  }
+
+  const totalApplications = await applicationModel.countDocuments(filterQuery);
+
   const applications = await applicationModel
-    .find({ applicant: req.user.sub })
-    .populate("job", "title company location type status");
+    .find(filterQuery)
+    .populate("job", "title company location type status")
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
 
   res.status(200).json({
     success: true,
     count: applications.length,
+    pagination: {
+      total: totalApplications,
+      page,
+      limit,
+      pages: Math.ceil(totalApplications / limit),
+    },
     data: applications,
   });
 });
 
-// view particular application
+// view application by id
 const viewApplicationController = asyncHandler(async (req, res) => {
   const application = await applicationModel
     .findById(req.params.id)
@@ -188,33 +280,31 @@ const viewApplicationController = asyncHandler(async (req, res) => {
   }
 
   const isRecruiter = req.user.role === "recruiter";
+  const isAdmin = req.user.role === "admin";
 
-  if (isRecruiter) {
-    if (application.recruiterId !== req.user.sub) {
-      return res.status(403).json({
-        success: false,
-        message: "Unauthorized",
-      });
-    }
-  } else {
-    if (application.applicant !== req.user.sub) {
-      return res.status(403).json({
-        success: false,
-        message: "Unauthorized",
-      });
+  if (!isAdmin) {
+    if (isRecruiter) {
+      if (application.recruiterId !== req.user.sub) {
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+    } else {
+      if (application.applicant !== req.user.sub) {
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
     }
   }
+
   const db = getDB();
 
   const applicantInfo = await db.collection("user").findOne(
-    {
-      _id: application.applicant,
-    },
-    {
-      projection: {
-        password: 0,
-      },
-    }
+    { id: application.applicant },
+    { projection: { password: 0 } }
   );
 
   res.status(200).json({
@@ -229,6 +319,7 @@ const viewApplicationController = asyncHandler(async (req, res) => {
 export default {
   postApplicationController,
   getAllApplicationController,
+  adminGetAllApplicationsController,
   updateApplicationController,
   deleteApplicationController,
   myApplicationController,
