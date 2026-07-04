@@ -8,8 +8,10 @@ const applicationSchema = new mongoose.Schema(
       required: [true, "Job is required"],
     },
     applicant: {
-      type: String,
-      required: [true, "Applicant is required"],
+      id: { type: String, required: true },
+      name: { type: String, required: true },
+      email: { type: String, required: true },
+      image: { type: String }
     },
     resume: {
       type: String,
@@ -20,7 +22,7 @@ const applicationSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "reviewed", "shortlisted", "rejected", "hired"],
+      enum: ["pending", "reviewed", "shortlisted", "rejected", "hired", "interviewing"],
       default: "pending",
     },
     experience: {

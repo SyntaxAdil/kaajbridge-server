@@ -27,7 +27,7 @@ router.get(
 );
 
 router.get(
-  "/job/:jobId",
+  "/all-job-applications",
   authMiddleware,
   checkRoleMiddleware(["recruiter", "admin"]),
   applicationController.getAllApplicationController

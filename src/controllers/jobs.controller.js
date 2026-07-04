@@ -42,13 +42,7 @@ const getJobsController = asyncHandler(async (req, res) => {
     $set: { status: "closed" }
   }
   )
-  await jobsModel.updateMany(
-    {
-      applicationDeadline: { $gt: now },
-      status: "closed"
-    }, {
-    $set: { status: "open" }
-  })
+
   const {
     search,
     type,
@@ -332,13 +326,7 @@ const myJobsController = asyncHandler(async (req, res) => {
     }, {
     $set: { status: "closed" }
   })
-  await jobsModel.updateMany(
-    {
-      applicationDeadline: { $gt: now },
-      status: "closed"
-    }, {
-    $set: { status: "open" }
-  })
+
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const search = req.query.search || "";
