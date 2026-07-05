@@ -25,7 +25,6 @@ const attachApplicantInfo = async (applications) => {
 
 const postApplicationController = asyncHandler(async (req, res) => {
   const { job, resume, coverLetter, experience, expectedSalary, termsAccepted } = req.body;
-  const db = getDB();
 
   const findJob = await jobsModel.findById(job);
 
@@ -72,11 +71,6 @@ const postApplicationController = asyncHandler(async (req, res) => {
     expectedSalary,
     termsAccepted,
   });
-
-  await db.collection("user").updateOne(
-    { _id: req.user.sub },
-    { $push: { applications: application._id } }
-  );
 
   res.status(201).json({
     success: true,
@@ -208,7 +202,6 @@ const updateApplicationController = asyncHandler(async (req, res) => {
 const deleteApplicationController = asyncHandler(async (req, res) => {
   const isRecruiter = req.user.role === "recruiter";
   const isAdmin = req.user.role === "admin";
-  const db = getDB();
 
   let query = {};
 
@@ -233,15 +226,6 @@ const deleteApplicationController = asyncHandler(async (req, res) => {
       success: false,
       message: "Application not found",
     });
-  }
-
-  try {
-    await db.collection("user").updateOne(
-      { _id: application.applicant.id },
-      { $pull: { applications: application._id } }
-    );
-  } catch (err) {
-    console.error(err);
   }
 
   res.status(200).json({
