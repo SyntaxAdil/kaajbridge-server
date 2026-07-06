@@ -13,6 +13,13 @@ router.post(
 );
 
 router.get(
+  "/analytics",
+  authMiddleware,
+  checkRoleMiddleware("seeker"),
+  applicationController.getInterviewAnalyticsController
+);
+
+router.get(
   "/admin/all",
   authMiddleware,
   checkRoleMiddleware("admin"),

@@ -315,6 +315,60 @@ const viewApplicationController = asyncHandler(async (req, res) => {
   });
 });
 
+const getInterviewAnalyticsController = asyncHandler(async (req, res) => {
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
+
+  const monthsOrder = [];
+  const current = new Date(sixMonthsAgo);
+  while (current <= new Date()) {
+    monthsOrder.push(current.toLocaleString("en-US", { month: "short" }));
+    current.setMonth(current.getMonth() + 1);
+  }
+
+  const analytics = await applicationModel.aggregate([
+    {
+      $match: {
+        "applicant.id": req.user.sub,
+        createdAt: { $gte: sixMonthsAgo },
+      },
+    },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%b", date: "$createdAt" } },
+        applied: { $sum: 1 },
+        interviews: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "interviewing"] }, 1, 0],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        name: "$_id",
+        applied: 1,
+        interviews: 1,
+      },
+    },
+  ]);
+
+  const analyticsMap = new Map(analytics.map((item) => [item.name, item]));
+  const sortedData = monthsOrder.map((month) => ({
+    name: month,
+    applied: analyticsMap.get(month)?.applied || 0,
+    interviews: analyticsMap.get(month)?.interviews || 0,
+  }));
+
+  res.status(200).json({
+    success: true,
+    data: sortedData,
+  });
+});
+
 export default {
   postApplicationController,
   getAllApplicationController,
@@ -323,4 +377,5 @@ export default {
   deleteApplicationController,
   myApplicationController,
   viewApplicationController,
+  getInterviewAnalyticsController,
 };
