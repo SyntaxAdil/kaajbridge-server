@@ -388,7 +388,60 @@ const myCompanyController = asyncHandler(async (req, res) => {
     allCompanyName: allComapniesName
   });
 });
+const getCompanyAnalyticsController = asyncHandler(async (req, res) => {
+  const userId = req.user.sub || req.user.id || req.user._id;
+  const role = req.user.role;
 
+  const statusPipeline = [];
+  if (role !== "admin") {
+    statusPipeline.push({ $match: { "ownedBy.id": userId } });
+  }
+  statusPipeline.push({
+    $group: {
+      _id: "$verificationStatus",
+      count: { $sum: 1 },
+    },
+  });
+
+  const industryPipeline = [];
+  if (role !== "admin") {
+    industryPipeline.push({ $match: { "ownedBy.id": userId } });
+  }
+  industryPipeline.push(
+    {
+      $group: {
+        _id: "$industry",
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { count: -1 } },
+    { $limit: 6 }
+  );
+
+  const [statusAnalytics, industryAnalytics] = await Promise.all([
+    companyModel.aggregate(statusPipeline),
+    companyModel.aggregate(industryPipeline),
+  ]);
+
+  const statusChartData = statusAnalytics.map((item) => ({
+    name: item._id || "pending",
+    value: item.count,
+  }));
+
+  const industryChartData = industryAnalytics.map((item) => ({
+    name: item._id || "Other",
+    value: item.count,
+  }));
+
+  res.status(200).json({
+    success: true,
+    message: "Company analytics metrics synchronized successfully",
+    data: {
+      statusChartData,
+      industryChartData,
+    },
+  });
+});
 export default {
   newCompanyController,
   getCompanyController,
@@ -399,5 +452,6 @@ export default {
   updateCompanyController,
   deleteCompanyController,
   adminDeleteCompanyController,
-  updateCompanyValidationStatusController
+  updateCompanyValidationStatusController,
+  getCompanyAnalyticsController
 };

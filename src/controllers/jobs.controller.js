@@ -369,7 +369,72 @@ const myJobsController = asyncHandler(async (req, res) => {
     },
     data: myJobs,
   });
+
+
 });
+// Job Analytics
+const getJobAnalyticsController = asyncHandler(async (req, res) => {
+  const userId = req.user.sub || req.user.id || req.user._id;
+  const role = req.user.role;
+
+  const companyChartPipeline = [];
+  if (role !== "admin") {
+    companyChartPipeline.push({ $match: { recruiterId: userId } });
+  }
+  companyChartPipeline.push(
+    {
+      $group: {
+        _id: "$company",
+        totalJobs: { $sum: 1 },
+        openJobs: { $sum: { $cond: [{ $eq: ["$status", "open"] }, 1, 0] } },
+        closedJobs: { $sum: { $cond: [{ $eq: ["$status", "closed"] }, 1, 0] } },
+      },
+    },
+    { $sort: { totalJobs: -1 } },
+    { $limit: 6 } 
+  );
+
+  const typeChartPipeline = [];
+  if (role !== "admin") {
+    typeChartPipeline.push({ $match: { recruiterId: userId } });
+  }
+  typeChartPipeline.push(
+    {
+      $group: {
+        _id: "$type",
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { count: -1 } }
+  );
+
+  const [companyAnalytics, typeAnalytics] = await Promise.all([
+    jobsModel.aggregate(companyChartPipeline),
+    jobsModel.aggregate(typeChartPipeline),
+  ]);
+
+  const companyChartData = companyAnalytics.map((item) => ({
+    name: item._id || "Unknown",
+    total: item.totalJobs,
+    open: item.openJobs,
+    closed: item.closedJobs,
+  }));
+
+  const typeChartData = typeAnalytics.map((item) => ({
+    name: item._id || "Other",
+    value: item.count,
+  }));
+
+  res.status(200).json({
+    success: true,
+    message: "Analytics data fetched successfully",
+    data: {
+      companyChartData,
+      typeChartData,
+    },
+  });
+});
+
 
 export default {
   newJobController,
@@ -381,4 +446,5 @@ export default {
   updateJobController,
   deleteJobController,
   adminDeleteJobController,
+  getJobAnalyticsController
 };

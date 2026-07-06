@@ -53,5 +53,11 @@ router.get(
   checkRoleMiddleware(["seeker", "recruiter", "admin"]),
   jobsController.getJobByIdController,
 );
+router.get(
+  "/analytics/overview",
+  authMiddleware,
+  checkRoleMiddleware(["recruiter", "admin"]),
+  jobsController.getJobAnalyticsController
+);
 
 export default router;
