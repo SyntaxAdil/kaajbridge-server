@@ -6,19 +6,22 @@ import companyModel from "../models/company.model.js";
 const allowedJobStatuses = ["open", "closed"];
 
 const newJobController = asyncHandler(async (req, res) => {
-  const recruiterId = req.user.sub;
-  const { company } = req.body;
-  const findCompanyForTheRecrutier = await companyModel.findOne({
-    name: company,
-    ownedBy: recruiterId,
-    verificationStatus: "verified",
-  });
+  const recruiterId = (req.user.sub || req.user.id || req.user._id).toString();
+   const { company } = req.body;
+
+ const findCompanyForTheRecrutier = await companyModel.findOne({
+  name: company,
+  "ownedBy.id": recruiterId.toString(),
+  verificationStatus: "verified",
+});
+
   if (!findCompanyForTheRecrutier) {
     return res.status(404).json({
       success: false,
       message: "Unauthorized ! No verified company found",
     });
   }
+
   const job = await jobsModel.create({
     ...req.body,
     recruiterId: recruiterId,
@@ -41,7 +44,7 @@ const getJobsController = asyncHandler(async (req, res) => {
     }, {
     $set: { status: "closed" }
   }
-  )
+  );
 
   const {
     search,
@@ -114,14 +117,14 @@ const adminGetAllJobsController = asyncHandler(async (req, res) => {
       status: "open"
     }, {
     $set: { status: "closed" }
-  })
+  });
   await jobsModel.updateMany(
     {
       applicationDeadline: { $gt: now },
       status: "closed"
     }, {
     $set: { status: "open" }
-  })
+  });
 
   const {
     search,
@@ -264,7 +267,7 @@ const deleteJobController = asyncHandler(async (req, res) => {
     });
   }
 
-  if (findJob.recruiterId !== recruiterId) {
+  if (findJob.recruiterId.toString() !== recruiterId.toString()) {
     return res.status(403).json({
       success: false,
       message: "Unauthorized",
@@ -318,14 +321,14 @@ const latestJobsController = asyncHandler(async (req, res) => {
 
 const myJobsController = asyncHandler(async (req, res) => {
   const recruiterId = req.user.sub;
-  const now = new Date()
+  const now = new Date();
   await jobsModel.updateMany(
     {
       applicationDeadline: { $lt: now },
       status: "open"
     }, {
     $set: { status: "closed" }
-  })
+  });
 
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
@@ -369,10 +372,8 @@ const myJobsController = asyncHandler(async (req, res) => {
     },
     data: myJobs,
   });
-
-
 });
-// Job Analytics
+
 const getJobAnalyticsController = asyncHandler(async (req, res) => {
   const userId = req.user.sub || req.user.id || req.user._id;
   const role = req.user.role;
@@ -391,7 +392,7 @@ const getJobAnalyticsController = asyncHandler(async (req, res) => {
       },
     },
     { $sort: { totalJobs: -1 } },
-    { $limit: 6 } 
+    { $limit: 6 }
   );
 
   const typeChartPipeline = [];
@@ -434,7 +435,6 @@ const getJobAnalyticsController = asyncHandler(async (req, res) => {
     },
   });
 });
-
 
 export default {
   newJobController,

@@ -182,7 +182,7 @@ const updateCompanyController = asyncHandler(async (req, res) => {
     });
   }
 
-  const hasOwnership = findCompany.ownedBy && findCompany.ownedBy.some(owner => owner.id === recruiterId);
+  const hasOwnership = findCompany.ownedBy && findCompany.ownedBy.some(owner => owner.id.toString() === recruiterId.toString());
 
   if (!hasOwnership) {
     return res.status(403).json({
@@ -275,7 +275,7 @@ const deleteCompanyController = asyncHandler(async (req, res) => {
     });
   }
 
-  const hasOwnership = findCompany.ownedBy && findCompany.ownedBy.some(owner => owner.id === recruiterId);
+  const hasOwnership = findCompany.ownedBy && findCompany.ownedBy.some(owner => owner.id.toString() === recruiterId.toString());
 
   if (!hasOwnership) {
     return res.status(403).json({
@@ -388,6 +388,7 @@ const myCompanyController = asyncHandler(async (req, res) => {
     allCompanyName: allComapniesName
   });
 });
+
 const getCompanyAnalyticsController = asyncHandler(async (req, res) => {
   const userId = req.user.sub || req.user.id || req.user._id;
   const role = req.user.role;
@@ -442,6 +443,7 @@ const getCompanyAnalyticsController = asyncHandler(async (req, res) => {
     },
   });
 });
+
 export default {
   newCompanyController,
   getCompanyController,

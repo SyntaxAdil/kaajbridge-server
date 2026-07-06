@@ -71,11 +71,14 @@ const companySchema = new mongoose.Schema(
       default: "pending",
     },
     ownedBy: [
-      {
-        id: { type: String, required: true },
-        name: { type: String, required: true },
-        image: { type: String }
-      }
+      new mongoose.Schema(
+        {
+          id: { type: String, required: true },
+          name: { type: String, required: true },
+          image: { type: String }
+        },
+        { _id: false }
+      )
     ]
   },
   { timestamps: true },

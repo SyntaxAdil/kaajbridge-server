@@ -8,7 +8,14 @@ const allowedStatuses = ["pending", "reviewed", "shortlisted", "interviewing", "
 
 const attachApplicantInfo = async (applications) => {
   const db = getDB();
-  const applicantIds = applications.map((app) => app.applicant?.id).filter(Boolean);
+  const applicantIds = applications
+    .map((app) => app.applicant?.id)
+    .filter(Boolean)
+    .map((id) => (mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id));
+
+  if (applicantIds.length === 0) {
+    return applications.map((app) => ({ ...app.toObject(), applicantInfo: null }));
+  }
 
   const users = await db
     .collection("user")
@@ -19,7 +26,7 @@ const attachApplicantInfo = async (applications) => {
 
   return applications.map((application) => ({
     ...application.toObject(),
-    applicantInfo: userMap.get(application.applicant?.id) || null,
+    applicantInfo: userMap.get(application.applicant?.id?.toString()) || null,
   }));
 };
 
@@ -166,7 +173,7 @@ const adminGetAllApplicationsController = asyncHandler(async (req, res) => {
 const updateApplicationController = asyncHandler(async (req, res) => {
   const { status } = req.body;
 
-  const validStatuses = ["pending", "reviewed", "shortlisted", "rejected", "hired", "interviewing"];
+  const validStatuses = ["pending", "reviewed", "shortlisted", "rejected", "hired", "interviewing", "accepted"];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({
       success: false,
@@ -183,7 +190,7 @@ const updateApplicationController = asyncHandler(async (req, res) => {
     });
   }
 
-  if (application.recruiterId !== req.user.sub && req.user.role !== "admin") {
+  if (application.recruiterId?.toString() !== req.user.sub?.toString() && req.user.role !== "admin") {
     return res.status(403).json({
       success: false,
       message: "Unauthorized",
@@ -284,14 +291,14 @@ const viewApplicationController = asyncHandler(async (req, res) => {
 
   if (!isAdmin) {
     if (isRecruiter) {
-      if (application.recruiterId !== req.user.sub) {
+      if (application.recruiterId?.toString() !== req.user.sub?.toString()) {
         return res.status(403).json({
           success: false,
           message: "Unauthorized",
         });
       }
     } else {
-      if (application.applicant?.id !== req.user.sub) {
+      if (application.applicant?.id?.toString() !== req.user.sub?.toString()) {
         return res.status(403).json({
           success: false,
           message: "Unauthorized",
@@ -301,10 +308,13 @@ const viewApplicationController = asyncHandler(async (req, res) => {
   }
 
   const db = getDB();
+  const searchId = mongoose.Types.ObjectId.isValid(application.applicant?.id)
+    ? new mongoose.Types.ObjectId(application.applicant.id)
+    : application.applicant?.id;
 
   const applicantInfo = await db
     .collection("user")
-    .findOne({ _id: application.applicant?.id });
+    .findOne({ _id: searchId });
 
   res.status(200).json({
     success: true,
