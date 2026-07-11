@@ -8,7 +8,6 @@ const addToFavJobsController = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
 
   const findJob = await jobsModel.findById(jobId);
-
   if (!findJob) {
     return res.status(404).json({
       success: false,
@@ -45,9 +44,7 @@ const getFavJobsController = asyncHandler(async (req, res) => {
   const seekerId = req.user.sub;
 
   const favJobs = await favjobsModel
-    .find({
-      addedBy: seekerId,
-    })
+    .find({ addedBy: seekerId })
     .populate("job");
 
   res.status(200).json({
@@ -61,7 +58,7 @@ const getFavJobsController = asyncHandler(async (req, res) => {
 // Remove from favorites
 const deleteFavJobsController = asyncHandler(async (req, res) => {
   const seekerId = req.user.sub;
-  const { jobId } = req.params;
+  const { jobId } = req.params; // রাউটারের প্যারাম নামের সাথে মিলানো হয়েছে
 
   const deletedFavJob = await favjobsModel.findOneAndDelete({
     job: jobId,
@@ -71,7 +68,7 @@ const deleteFavJobsController = asyncHandler(async (req, res) => {
   if (!deletedFavJob) {
     return res.status(404).json({
       success: false,
-      message: "Favorite job not found",
+      message: "Favorite job not found in your list",
     });
   }
 
@@ -81,8 +78,6 @@ const deleteFavJobsController = asyncHandler(async (req, res) => {
     data: deletedFavJob,
   });
 });
-
-
 
 export default {
   addToFavJobsController,

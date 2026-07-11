@@ -5,29 +5,28 @@ import favjobsController from "../controllers/favjobs.controller.js";
 
 const router = express.Router();
 
-// save fav jobs
-router.post(
-  "/",
-  authMiddleware,
-  checkRoleMiddleware("seeker"),
-  favjobsController.addToFavJobsController,
-);
-
 // view fav jobs
 router.get(
   "/",
   authMiddleware,
   checkRoleMiddleware("seeker"),
-  favjobsController.getFavJobsController,
+  favjobsController.getFavJobsController
+);
+
+// save fav jobs
+router.post(
+  "/:jobId", 
+  authMiddleware,
+  checkRoleMiddleware("seeker"),
+  favjobsController.addToFavJobsController
 );
 
 // delete fav jobs
-router.patch(
-  "/:id",
+router.delete(
+  "/:jobId", 
   authMiddleware,
   checkRoleMiddleware("seeker"),
-  favjobsController.deleteFavJobsController,
+  favjobsController.deleteFavJobsController
 );
-
 
 export default router;
