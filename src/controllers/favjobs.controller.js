@@ -82,6 +82,8 @@ const deleteFavJobsController = asyncHandler(async (req, res) => {
   });
 });
 
+
+
 export default {
   addToFavJobsController,
   getFavJobsController,

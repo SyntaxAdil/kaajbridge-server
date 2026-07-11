@@ -6,6 +6,7 @@ import checkRoleMiddleware from "../middleware/role.middleware.js";
 const router = express.Router();
 
 router.get("/", jobsController.getJobsController);
+
 router.get("/latest-jobs", jobsController.latestJobsController);
 
 router.get(
@@ -28,18 +29,21 @@ router.post(
   checkRoleMiddleware("recruiter"),
   jobsController.newJobController,
 );
+
 router.get(
   "/my-jobs",
   authMiddleware,
   checkRoleMiddleware("recruiter"),
   jobsController.myJobsController,
 );
+
 router.patch(
   "/my-jobs/:id",
   authMiddleware,
   checkRoleMiddleware("recruiter"),
   jobsController.updateJobController,
 );
+
 router.delete(
   "/my-jobs/:id",
   authMiddleware,
@@ -53,6 +57,7 @@ router.get(
   checkRoleMiddleware(["seeker", "recruiter", "admin"]),
   jobsController.getJobByIdController,
 );
+
 router.get(
   "/analytics/overview",
   authMiddleware,

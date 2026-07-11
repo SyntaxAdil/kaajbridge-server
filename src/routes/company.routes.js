@@ -63,6 +63,7 @@ router.get(
   checkRoleMiddleware(["seeker", "recruiter","admin"]),
   companyController.getCompanyByIdController,
 );
+
 router.get(
   "/analytics/overview",
   authMiddleware,

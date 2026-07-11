@@ -29,4 +29,5 @@ router.patch(
   favjobsController.deleteFavJobsController,
 );
 
+
 export default router;
