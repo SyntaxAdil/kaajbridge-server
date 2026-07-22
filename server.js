@@ -1,3 +1,7 @@
+//dns
+import dns from "node:dns";
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+// dotenv
 // dotenv
 import dotenv from "dotenv";
 dotenv.config();
